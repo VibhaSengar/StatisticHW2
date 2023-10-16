@@ -1,0 +1,99 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using MathNet.Numerics;
+using MathNet.Numerics.Distributions;
+using LiveCharts;
+using LiveCharts.Wpf;
+
+namespace RandomDistributionAnalysis
+{
+    class Program
+    {
+        static void Main()
+        {
+            // Parameters
+            int N = 1000;  // Number of random variates
+            int k = 10;    // Number of interval classes
+
+            // Generate random variates
+            var random = new MersenneTwister();
+            var randomVariates = GenerateRandomVariates(N, random);
+
+            // Determine the distribution into interval classes
+            var intervalCounts = CountInIntervalClasses(randomVariates, k);
+
+            // Plot the distribution
+            PlotDistribution(intervalCounts, k);
+        }
+
+        static List<double> GenerateRandomVariates(int N, Random random)
+        {
+            var randomVariates = new List<double>();
+            for (int i = 0; i < N; i++)
+            {
+                randomVariates.Add(random.NextDouble());
+            }
+            return randomVariates;
+        }
+
+        static int[] CountInIntervalClasses(List<double> randomVariates, int k)
+        {
+            var intervalCounts = new int[k];
+            double step = 1.0 / k;
+
+            foreach (var variate in randomVariates)
+            {
+                int index = (int)(variate / step);
+                intervalCounts[index]++;
+            }
+
+            return intervalCounts;
+        }
+
+        static void PlotDistribution(int[] intervalCounts, int k)
+        {
+            var labels = Enumerable.Range(0, k).Select(i => $"{i / (double)k:F2}-{(i + 1) / (double)k:F2}").ToArray();
+
+            var chart = new CartesianChart();
+            chart.Series = new LiveCharts.SeriesCollection
+            {
+                new ColumnSeries
+                {
+                    Title = "Distribution",
+                    Values = intervalCounts.Select(count => (double)count).AsChartValues(),
+                }
+            };
+            chart.AxisX.Add(new LiveCharts.Wpf.Axis
+            {
+                Title = "Intervals",
+                Labels = labels
+            });
+            chart.AxisY.Add(new LiveCharts.Wpf.Axis
+            {
+                Title = "Counts"
+            });
+
+            chart.LegendLocation = LiveCharts.LegendLocation.None;
+
+            var mainWindow = new LiveCharts.Wpf.CartesianChart();
+            mainWindow.Series = chart.Series;
+            mainWindow.AxisX = chart.AxisX;
+            mainWindow.AxisY = chart.AxisY;
+
+            LiveCharts.WinForms.CartesianChart.WinFormsExtensions.EnableDoubleDBuffer = false;
+
+            var wpfChart = new System.Windows.Forms.Integration.ElementHost
+            {
+                Child = mainWindow
+            };
+
+            var form = new System.Windows.Forms.Form();
+            form.Text = "Random Distribution Analysis";
+            form.Size = new System.Drawing.Size(800, 600);
+            form.Controls.Add(wpfChart);
+
+            System.Windows.Forms.Application.Run(form);
+        }
+    }
+}
