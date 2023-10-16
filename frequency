@@ -1,0 +1,61 @@
+using OfficeOpenXml;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+class Program
+{
+    static void Main()
+    {
+        string filePath = "Professional_Life.xlsx";
+
+        using (var package = new ExcelPackage(new FileInfo(filePath)))
+        {
+            var workbook = package.Workbook.Worksheets[0]; // Assuming data is in the first worksheet.
+
+            Dictionary<string, int> qualitativeFreq = new Dictionary<string, int>();
+            Dictionary<int, int> discreteFreq = new Dictionary<int, int>();
+            Dictionary<double, int> continuousFreq = new Dictionary<double, int>();
+
+            Dictionary<string, Dictionary<int, int>> jointDistribution = new Dictionary<string, Dictionary<int, int>>();
+
+            int rowCount = workbook.Dimension.End.Row;
+
+            for (int row = 2; row <= rowCount; row++)
+            {
+                // Replace "A", "B", "C" with the actual column letters for your variables.
+                string qualitativeValue = workbook.Cells[row, 2].Text;
+                int discreteValue = int.Parse(workbook.Cells[row, 6].Text);
+                double continuousValue = double.Parse(workbook.Cells[row, 17].Text);
+
+                // Compute frequency distribution for Qualitative Variable.
+                if (!qualitativeFreq.ContainsKey(qualitativeValue))
+                    qualitativeFreq[qualitativeValue] = 0;
+                qualitativeFreq[qualitativeValue]++;
+
+                // Compute frequency distribution for Discrete Variable.
+                if (!discreteFreq.ContainsKey(discreteValue))
+                    discreteFreq[discreteValue] = 0;
+                discreteFreq[discreteValue]++;
+
+                // Compute frequency distribution for Continuous Variable (Assuming predefined bins).
+                int continuousBin = (int)(continuousValue / 10); // Adjust bin size as needed.
+                if (!continuousFreq.ContainsKey(continuousBin))
+                    continuousFreq[continuousBin] = 0;
+                continuousFreq[continuousBin]++;
+
+                // Compute joint distribution for two variables.
+                string combinedKey = qualitativeValue + "_" + discreteValue;
+                if (!jointDistribution.ContainsKey(combinedKey))
+                    jointDistribution[combinedKey] = new Dictionary<int, int>();
+                if (!jointDistribution[combinedKey].ContainsKey(continuousBin))
+                    jointDistribution[combinedKey][continuousBin] = 0;
+                jointDistribution[combinedKey][continuousBin]++;
+            }
+
+            // Now you have frequency distributions for the three variables and joint distributions.
+            // You can perform calculations and analysis as needed.
+        }
+    }
+}
